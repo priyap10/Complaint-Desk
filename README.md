@@ -25,28 +25,32 @@ A Django + PostgreSQL web app for managing complaints, with three roles: Complai
 
 ## Setup
 
-```bash
 python -m venv venv
 venv\Scripts\activate            # Windows
 pip install -r requirements.txt
-```
+
 
 Copy `.env.example` to `.env` and add your PostgreSQL password.
 
-```bash
+
 python manage.py makemigrations accounts complaints
 python manage.py migrate
 python manage.py seed_data
 python manage.py runserver
-```
+
 
 Visit `http://127.0.0.1:8000/`. Demo login (password `Demo@12345`):
 
+current set up roles in this project:
 | Username | Role |
 |---|---|
 | `admin_demo` | Admin |
 | `staff_ravi` | Staff |
 | `user_asha` | Complainant |
+
+
+
+
 
 ## Tech stack
 Python, Django, PostgreSQL, Bootstrap 5, Chart.js
