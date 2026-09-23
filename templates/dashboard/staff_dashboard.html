@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}My dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Hello, {{ user.first_name|default:user.username }}</h1>
+    <p class="subtitle">Here is what needs your attention today.</p>
+  </div>
+  <a href="{% url 'complaints:list' %}" class="btn btn-primary no-print"><i class="bi bi-list-check me-1"></i>Open the complaint queue</a>
+</div>
+
+<div class="row g-3 row-cols-2 row-cols-lg-4 mb-4">
+  <div class="col">
+    <div class="card stat-card stat-card--warning">
+      <a href="{% url 'complaints:list' %}?assigned=me" class="stat-label text-decoration-none stretched-link">My active complaints</a>
+      <div class="stat-value">{{ stats.active }}</div>
+      <i class="bi bi-hourglass-split stat-icon"></i>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card stat-card stat-card--danger">
+      <a href="{% url 'complaints:list' %}?assigned=me&amp;status=open" class="stat-label text-decoration-none stretched-link">Not started</a>
+      <div class="stat-value">{{ stats.open }}</div>
+      <div class="stat-note">assigned to me, still open</div>
+      <i class="bi bi-exclamation-circle stat-icon"></i>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card stat-card stat-card--success">
+      <div class="stat-label">Resolved this week</div>
+      <div class="stat-value">{{ stats.resolved_this_week }}</div>
+      <div class="stat-note">{{ stats.total_handled }} handled in total</div>
+      <i class="bi bi-check-circle stat-icon"></i>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card stat-card stat-card--info">
+      <a href="{% url 'complaints:list' %}?assigned=unassigned" class="stat-label text-decoration-none stretched-link">Waiting for a handler</a>
+      <div class="stat-value">{{ stats.unassigned_pool }}</div>
+      <div class="stat-note">unassigned and unresolved</div>
+      <i class="bi bi-person-raised-hand stat-icon"></i>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+ 
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">My queue <span class="text-muted fw-normal small">(most urgent first)</span></div>
+      {% if my_queue %}
+        <div class="table-responsive">
+          <table class="table table-cms table-hover align-middle mb-0">
+            <thead><tr><th>Ticket</th><th>Title</th><th>Priority</th><th>Status</th><th>Filed on</th></tr></thead>
+            <tbody>
+              {% for c in my_queue %}
+                <tr class="priority-{{ c.priority }}">
+                  <td><a href="{{ c.get_absolute_url }}" class="ticket-id text-decoration-none">{{ c.ticket_id }}</a></td>
+                  <td style="min-width: 200px;">
+                    <a href="{{ c.get_absolute_url }}" class="fw-semibold text-body text-decoration-none">{{ c.title|truncatechars:50 }}</a>
+                    <div class="small text-muted">{{ c.complainant.display_name }} &middot; {{ c.category.name }}</div>
+                  </td>
+                  <td><span class="badge text-bg-{{ c.priority_badge }}">{{ c.get_priority_display }}</span></td>
+                  <td><span class="badge text-bg-{{ c.status_badge }}">{{ c.get_status_display }}</span></td>
+                  <td class="text-nowrap">{{ c.created_at|date:"d M" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <i class="bi bi-check2-all"></i>
+          <p class="mb-0">You have no active complaints. Pick one from the list on the right.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card mb-4">
+      <div class="card-header">My complaints by status</div>
+      <div class="card-body">
+        <div class="chart-box">
+          <canvas data-chart="doughnut" data-source="status-data" data-palette="status" role="img" aria-label="My complaints by status"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Waiting for a handler</div>
+      {% if unassigned_queue %}
+        <ul class="list-group list-group-flush">
+          {% for c in unassigned_queue %}
+            <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+              <div class="flex-grow-1">
+                <a href="{{ c.get_absolute_url }}" class="fw-semibold text-body text-decoration-none">{{ c.title|truncatechars:34 }}</a>
+                <div class="small text-muted">
+                  <span class="badge text-bg-{{ c.priority_badge }}">{{ c.get_priority_display }}</span>
+                  &middot; {{ c.created_at|date:"d M" }}
+                </div>
+              </div>
+              <form method="post" action="{% url 'complaints:claim' c.pk %}" data-loading-text="Claiming...">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-success">Claim</button>
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty-state"><i class="bi bi-emoji-smile"></i><p class="mb-0">Nothing is waiting. Great job!</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  {{ status_chart|json_script:"status-data" }}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% endblock %}

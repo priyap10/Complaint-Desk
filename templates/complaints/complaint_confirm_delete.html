@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Delete complaint{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <div class="card border-danger">
+      <div class="card-body p-4 text-center">
+        <div class="display-5 text-danger mb-2"><i class="bi bi-exclamation-triangle"></i></div>
+        <h1 class="h4 fw-bold">Delete this complaint?</h1>
+        <p class="text-muted mb-1">
+          <span class="ticket-id">{{ complaint.ticket_id }}</span>
+        </p>
+        <p class="fw-semibold">{{ complaint.title }}</p>
+        <p class="text-muted small">
+          This permanently removes the complaint together with its comments, attachments and history.
+          This cannot be undone.
+        </p>
+
+        <form method="post" class="d-flex justify-content-center gap-2 mt-4" data-loading-text="Deleting...">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Yes, delete it</button>
+          <a href="{{ complaint.get_absolute_url }}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

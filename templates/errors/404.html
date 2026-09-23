@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Page not found{% endblock %}
+
+{% block content %}
+<div class="empty-state my-5">
+  <i class="bi bi-search text-primary"></i>
+  <h1 class="h3 fw-bold text-body">404 &ndash; Page not found</h1>
+  <p class="mb-4">The page you are looking for does not exist, or the complaint is not visible to you.</p>
+  <a href="{% url 'accounts:home' %}" class="btn btn-primary"><i class="bi bi-house me-1"></i>Go to my home page</a>
+</div>
+{% endblock %}

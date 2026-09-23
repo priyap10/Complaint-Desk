@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}My profile{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>My profile</h1>
+    <p class="subtitle">Keep your contact details up to date so we can reach you.</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="card text-center">
+      <div class="card-body p-4">
+        <span class="avatar avatar--lg mb-3">{{ user.display_name|slice:":1" }}</span>
+        <h2 class="h5 mb-1">{{ user.display_name }}</h2>
+        <p class="text-muted mb-2">@{{ user.username }}</p>
+        <span class="badge text-bg-primary">{{ user.get_role_display }}</span>
+        <hr>
+        <dl class="row text-start small mb-0">
+          <dt class="col-7 text-muted fw-normal">Member since</dt>
+          <dd class="col-5 text-end mb-1">{{ user.date_joined|date:"d M Y" }}</dd>
+          <dt class="col-7 text-muted fw-normal">Complaints filed</dt>
+          <dd class="col-5 text-end mb-1">{{ user.complaints.count }}</dd>
+          {% if user.is_support_team %}
+            <dt class="col-7 text-muted fw-normal">Assigned to you</dt>
+            <dd class="col-5 text-end mb-0">{{ user.assigned_complaints.count }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">Personal details</div>
+      <div class="card-body p-4">
+        <form method="post" novalidate data-loading-text="Saving...">
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger py-2">
+              {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="row g-3">
+            {% for field in form %}
+              <div class="{% if field.name == 'first_name' or field.name == 'last_name' %}col-md-6{% else %}col-12{% endif %}">
+                <div class="field-group{% if field.errors %} has-error{% endif %}">
+                  <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                  {{ field }}
+                  {% for error in field.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="mt-4">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i>Save changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Admin dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Admin dashboard</h1>
+    <p class="subtitle">A live overview of every complaint in the system.</p>
+  </div>
+  <div class="d-flex gap-2 no-print">
+    <a href="{% url 'complaints:list' %}" class="btn btn-primary"><i class="bi bi-list-check me-1"></i>All complaints</a>
+    <a href="{% url 'dashboard:export_csv' %}" class="btn btn-outline-secondary"><i class="bi bi-download me-1"></i>Export CSV</a>
+  </div>
+</div>
+
+<div class="row g-3 row-cols-2 row-cols-lg-4 mb-4">
+  <div class="col">
+    <div class="card stat-card stat-card--primary">
+      <a href="{% url 'complaints:list' %}" class="stat-label text-decoration-none stretched-link">Total complaints</a>
+      <div class="stat-value">{{ stats.total }}</div>
+      <i class="bi bi-inboxes stat-icon"></i>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card stat-card stat-card--danger">
+      <a href="{% url 'complaints:list' %}?status=open" class="stat-label text-decoration-none stretched-link">Open</a>
+      <div class="stat-value">{{ stats.open }}</div>
+      <i class="bi bi-exclamation-circle stat-icon"></i>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card stat-card stat-card--warning">
+      <a href="{% url 'complaints:list' %}?status=in_progress" class="stat-label text-decoration-none stretched-link">In progress</a>
+      <div class="stat-value">{{ stats.in_progress }}</div>
+      <i class="bi bi-hourglass-split stat-icon"></i>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card stat-card stat-card--success">
+      <a href="{% url 'complaints:list' %}?status=resolved" class="stat-label text-decoration-none stretched-link">Resolved</a>
+      <div class="stat-value">{{ stats.resolved }}</div>
+      <i class="bi bi-check-circle stat-icon"></i>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card stat-card stat-card--secondary">
+      <a href="{% url 'complaints:list' %}?status=closed" class="stat-label text-decoration-none stretched-link">Closed</a>
+      <div class="stat-value">{{ stats.closed }}</div>
+      <i class="bi bi-archive stat-icon"></i>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card stat-card stat-card--info">
+      <a href="{% url 'complaints:list' %}?assigned=unassigned" class="stat-label text-decoration-none stretched-link">Unassigned</a>
+      <div class="stat-value">{{ stats.unassigned }}</div>
+      <div class="stat-note">unresolved, no handler yet</div>
+      <i class="bi bi-person-x stat-icon"></i>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card stat-card stat-card--danger">
+      <a href="{% url 'complaints:list' %}?priority=urgent" class="stat-label text-decoration-none stretched-link">Urgent &amp; unresolved</a>
+      <div class="stat-value">{{ stats.urgent_open }}</div>
+      <i class="bi bi-lightning-charge stat-icon"></i>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card stat-card stat-card--primary">
+      <div class="stat-label">Avg. resolution time</div>
+      <div class="stat-value">
+        {% if stats.avg_resolution_days is not None %}{{ stats.avg_resolution_days }}<small class="fs-6 fw-normal text-muted"> days</small>{% else %}&mdash;{% endif %}
+      </div>
+      <i class="bi bi-stopwatch stat-icon"></i>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="card h-100">
+      <div class="card-header">Created vs resolved &middot; last {{ trend_days }} days</div>
+      <div class="card-body">
+        <div class="chart-box chart-box--lg">
+          <canvas data-chart="line" data-source="trend-data" role="img" aria-label="Complaints created and resolved per day"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header">By status</div>
+      <div class="card-body">
+        <div class="chart-box chart-box--lg">
+          <canvas data-chart="doughnut" data-source="status-data" data-palette="status" role="img" aria-label="Complaints by status"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header">By priority</div>
+      <div class="card-body">
+        <div class="chart-box">
+          <canvas data-chart="bar" data-source="priority-data" data-palette="priority" role="img" aria-label="Complaints by priority"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header">By category</div>
+      <div class="card-body">
+        <div class="chart-box">
+          <canvas data-chart="bar" data-horizontal data-source="category-data" data-palette="category" role="img" aria-label="Complaints by category"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Needs attention + staff workload ============ -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-lightning-charge text-danger me-1"></i>Needs attention <span class="text-muted fw-normal small">(high or urgent, nobody assigned)</span></div>
+      {% if needs_attention %}
+        <div class="table-responsive">
+          <table class="table table-cms table-hover align-middle mb-0">
+            <thead><tr><th>Ticket</th><th>Title</th><th>Priority</th><th>Filed on</th></tr></thead>
+            <tbody>
+              {% for c in needs_attention %}
+                <tr class="priority-{{ c.priority }}">
+                  <td><a href="{{ c.get_absolute_url }}" class="ticket-id text-decoration-none">{{ c.ticket_id }}</a></td>
+                  <td><a href="{{ c.get_absolute_url }}" class="text-body text-decoration-none">{{ c.title|truncatechars:45 }}</a></td>
+                  <td><span class="badge text-bg-{{ c.priority_badge }}">{{ c.get_priority_display }}</span></td>
+                  <td class="text-nowrap">{{ c.created_at|date:"d M" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state"><i class="bi bi-emoji-smile"></i><p class="mb-0">Nothing urgent is waiting. Nice work!</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-people me-1"></i>Staff workload</div>
+      {% if staff_workload %}
+        <div class="table-responsive">
+          <table class="table table-cms align-middle mb-0">
+            <thead><tr><th>Staff member</th><th class="text-center">Active</th><th class="text-center">Finished</th></tr></thead>
+            <tbody>
+              {% for s in staff_workload %}
+                <tr>
+                  <td>
+                    <span class="avatar me-2">{{ s.display_name|slice:":1" }}</span>{{ s.display_name }}
+                  </td>
+                  <td class="text-center"><span class="badge text-bg-warning">{{ s.active_count }}</span></td>
+                  <td class="text-center"><span class="badge text-bg-success">{{ s.finished_count }}</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state"><i class="bi bi-person-plus"></i><p class="mb-0">No staff accounts yet. Add some in the Django admin.</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Recent complaints</span>
+    <a href="{% url 'complaints:list' %}" class="btn btn-sm btn-outline-primary">View all</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-cms table-hover align-middle mb-0">
+      <thead>
+        <tr><th>Ticket</th><th>Title</th><th>Complainant</th><th>Priority</th><th>Status</th><th>Assigned to</th><th>Filed on</th></tr>
+      </thead>
+      <tbody>
+        {% for c in recent_complaints %}
+          <tr class="priority-{{ c.priority }}">
+            <td><a href="{{ c.get_absolute_url }}" class="ticket-id text-decoration-none">{{ c.ticket_id }}</a></td>
+            <td><a href="{{ c.get_absolute_url }}" class="fw-semibold text-body text-decoration-none">{{ c.title|truncatechars:50 }}</a></td>
+            <td>{{ c.complainant.display_name }}</td>
+            <td><span class="badge text-bg-{{ c.priority_badge }}">{{ c.get_priority_display }}</span></td>
+            <td><span class="badge text-bg-{{ c.status_badge }}">{{ c.get_status_display }}</span></td>
+            <td>{% if c.assigned_to %}{{ c.assigned_to.display_name }}{% else %}<span class="text-muted">Unassigned</span>{% endif %}</td>
+            <td class="text-nowrap">{{ c.created_at|date:"d M Y" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7"><div class="empty-state"><i class="bi bi-inbox"></i><p class="mb-0">No complaints yet.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  {{ status_chart|json_script:"status-data" }}
+  {{ priority_chart|json_script:"priority-data" }}
+  {{ category_chart|json_script:"category-data" }}
+  {{ trend_chart|json_script:"trend-data" }}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% endblock %}
